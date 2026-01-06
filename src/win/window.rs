@@ -612,13 +612,16 @@ impl Window<'_> {
         B: FnOnce(&mut crate::Window) -> H,
         B: Send + 'static,
     {
-        let (_, hwnd) = Self::open(false, null_mut(), options, build);
+        let (_, _hwnd) = Self::open(false, null_mut(), options, build);
 
         unsafe {
             let mut msg: MSG = std::mem::zeroed();
 
             loop {
-                let status = GetMessageW(&mut msg, hwnd, 0, 0);
+                // IMPORTANT: Pass null_mut() instead of hwnd to pump messages for ALL windows
+                // on this thread. Filtering by hwnd prevents child windows (like WebView2
+                // and its COM components) from receiving their messages, breaking IPC.
+                let status = GetMessageW(&mut msg, null_mut(), 0, 0);
 
                 if status == -1 {
                     break;
